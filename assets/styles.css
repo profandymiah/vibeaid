@@ -269,3 +269,5 @@ main:focus { outline: none; }
 .powered { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: var(--radius-pill); padding: 6px 14px; background: var(--paper-raised); }
 .powered strong { font-weight: 600; }
 .powered:hover { background: var(--sun); color: var(--on-sun); border-color: var(--ink); }
+
+[hidden] { display: none !important; }
