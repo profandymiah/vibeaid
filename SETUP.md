@@ -2,15 +2,16 @@
 
 Same set-up as SignStories: **Supabase** (database, sign-in, screenshots) → **GitHub Pages** (the site) → **Squarespace DNS** (the address). About 45 minutes.
 
-## Part 1: Supabase
+## Part 1: Supabase (already done)
 
-> The free Supabase plan allows two active projects, and `aiethos` and `signstories` already use them. Either upgrade the organisation to Pro, pause a project you don't need live, or ask Claude to install Vibe Aid's tables inside an existing project.
+Vibe Aid shares the **signstories** Supabase project (the free plan allows two active projects). Every Vibe Aid table, function and storage bucket starts with `va_` / `va-`, so nothing touches SignStories. The tables are installed and `config.js` is filled in.
 
-1. supabase.com → **New project** → name `vibeaid`, region *West EU (London)*, generate and save a database password.
-2. **SQL Editor → New query**: paste all of `schema.sql`, click **Run**.
-3. **Authentication → URL Configuration**: Site URL `https://vibeaid.andymiah.net`; add redirect URL `https://vibeaid.andymiah.net/**`.
-4. **Project Settings → API**: copy the **Project URL** and **anon public** key into `config.js`.
-5. Before launch, connect custom SMTP (Resend or Brevo) under **Authentication → Emails → SMTP Settings** — the built-in sender only manages a few emails an hour.
+Two dashboard settings left, in the signstories project:
+
+1. **Authentication → URL Configuration → Redirect URLs**: add `https://vibeaid.andymiah.net/**` (keep the SignStories ones).
+2. **Authentication → Emails → Templates → Magic Link**: if it mentions BSL Sign Stories, reword it to something neutral like "Your sign-in link", since both sites now send it.
+
+If the "real accounts only" block at the end of `schema.sql` hasn't been applied, paste that block into **SQL Editor** and run it.
 
 ### Part 1b (optional): "Continue with GitHub"
 
@@ -33,7 +34,7 @@ Same set-up as SignStories: **Supabase** (database, sign-in, screenshots) → **
 Sign in on the live site, add your name, then in Supabase's SQL Editor run:
 
 ```sql
-insert into public.moderators (user_id)
+insert into public.va_moderators (user_id)
 select id from auth.users where email = 'YOUR-EMAIL-HERE';
 ```
 

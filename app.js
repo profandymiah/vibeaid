@@ -47,7 +47,7 @@ function store(k, v) { try { if (v === undefined) return localStorage.getItem(k)
 function slugify(t) { return String(t).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "project"; }
 function redirectTo() { return location.origin + location.pathname; }
 function shotUrl(p) {
-  if (p.image_path && sb) return sb.storage.from("shots").getPublicUrl(p.image_path).data.publicUrl;
+  if (p.image_path && sb) return sb.storage.from("va-shots").getPublicUrl(p.image_path).data.publicUrl;
   return safeUrl(p.image_url);
 }
 function placeholder(p) {
@@ -83,9 +83,9 @@ async function loadMe() {
   if (sb && session) {
     const uid = session.user.id;
     const [{ data: p }, { data: m }, { data: u }] = await Promise.all([
-      sb.from("profiles").select("*").eq("id", uid).maybeSingle(),
-      sb.from("moderators").select("user_id").eq("user_id", uid).maybeSingle(),
-      sb.from("useful").select("project_id").eq("user_id", uid)
+      sb.from("va_profiles").select("*").eq("id", uid).maybeSingle(),
+      sb.from("va_moderators").select("user_id").eq("user_id", uid).maybeSingle(),
+      sb.from("va_useful").select("project_id").eq("user_id", uid)
     ]);
     profile = p || null; isMod = !!m; (u || []).forEach(r => myUseful.add(r.project_id));
   }
@@ -97,15 +97,15 @@ async function loadMe() {
 async function loadProjects() {
   usingExamples = false; counts = {};
   if (sb) {
-    const { data, error } = await sb.from("projects").select("*").eq("status", "approved")
+    const { data, error } = await sb.from("va_projects").select("*").eq("status", "approved")
       .order("featured", { ascending: false }).order("created_at", { ascending: false }).limit(500);
     if (error) { setStatus("Couldn't load projects. Please try again shortly."); projects = []; }
     else projects = data || [];
-    const { data: c } = await sb.from("useful_counts").select("*");
+    const { data: c } = await sb.from("va_useful_counts").select("*");
     (c || []).forEach(r => counts[r.project_id] = r.n);
     const ids = [...new Set(projects.map(p => p.created_by))].filter(id => !names[id]);
     if (ids.length) {
-      const { data: ps } = await sb.from("profiles").select("id,display_name").in("id", ids);
+      const { data: ps } = await sb.from("va_profiles").select("id,display_name").in("id", ids);
       (ps || []).forEach(p => names[p.id] = p.display_name);
     }
   }
@@ -273,10 +273,10 @@ function viewProjects(q = {}) {
 async function findProject(slug) {
   let p = projects.find(x => x.slug === slug);
   if (!p && sb) {
-    const { data } = await sb.from("projects").select("*").eq("slug", slug).maybeSingle();
+    const { data } = await sb.from("va_projects").select("*").eq("slug", slug).maybeSingle();
     if (data) {
       p = data;
-      if (!names[p.created_by]) { const { data: pr } = await sb.from("profiles").select("id,display_name").eq("id", p.created_by).maybeSingle(); if (pr) names[pr.id] = pr.display_name; }
+      if (!names[p.created_by]) { const { data: pr } = await sb.from("va_profiles").select("id,display_name").eq("id", p.created_by).maybeSingle(); if (pr) names[pr.id] = pr.display_name; }
     }
   }
   return p;
@@ -348,8 +348,8 @@ async function toggleUseful(p) {
   if (!session) return openAuth("Sign in to mark projects as useful.");
   if (p.created_by === session.user.id) return setStatus("You can't mark your own project — but we're sure it's useful.");
   const on = myUseful.has(p.id);
-  const { error } = on ? await sb.from("useful").delete().eq("user_id", session.user.id).eq("project_id", p.id)
-                       : await sb.from("useful").insert({ project_id: p.id });
+  const { error } = on ? await sb.from("va_useful").delete().eq("user_id", session.user.id).eq("project_id", p.id)
+                       : await sb.from("va_useful").insert({ project_id: p.id });
   if (error) return setStatus("That didn't work. Please try again.");
   on ? myUseful.delete(p.id) : myUseful.add(p.id);
   counts[p.id] = (counts[p.id] || 0) + (on ? -1 : 1);
@@ -509,18 +509,18 @@ async function saveProject(existing) {
       if (file.size > 5 * 1024 * 1024) throw new Error("That screenshot is over 5 MB. Try a smaller one.");
       const ext = (file.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "");
       const path = `${session.user.id}/${Date.now()}.${ext}`;
-      const { error } = await sb.storage.from("shots").upload(path, file, { contentType: file.type, upsert: false });
+      const { error } = await sb.storage.from("va-shots").upload(path, file, { contentType: file.type, upsert: false });
       if (error) throw new Error("The screenshot didn't upload. Try a PNG or JPG under 5 MB.");
       row.image_path = path; row.image_url = "";
     }
     let saved;
     if (existing) {
-      const { data, error } = await sb.from("projects").update(row).eq("id", existing.id).select().single();
+      const { data, error } = await sb.from("va_projects").update(row).eq("id", existing.id).select().single();
       if (error) throw error; saved = data;
-      if (row.image_path && existing.image_path) sb.storage.from("shots").remove([existing.image_path]);
+      if (row.image_path && existing.image_path) sb.storage.from("va-shots").remove([existing.image_path]);
     } else {
       row.slug = slugify(row.title) + "-" + Math.random().toString(36).slice(2, 6);
-      const { data, error } = await sb.from("projects").insert(row).select().single();
+      const { data, error } = await sb.from("va_projects").insert(row).select().single();
       if (error) throw error; saved = data;
     }
     await loadProjects();
@@ -533,16 +533,16 @@ async function saveProject(existing) {
 
 async function deleteProject(p) {
   if (!confirm(`Delete "${p.title}"? This can't be undone.`)) return;
-  const { error } = await sb.from("projects").delete().eq("id", p.id);
+  const { error } = await sb.from("va_projects").delete().eq("id", p.id);
   if (error) return setStatus("Couldn't delete it. Please try again.");
-  if (p.image_path) sb.storage.from("shots").remove([p.image_path]);
+  if (p.image_path) sb.storage.from("va-shots").remove([p.image_path]);
   await loadProjects(); location.hash = "#/mine"; setStatus("Deleted.");
 }
 
 /* ---------- mine ---------- */
 async function viewMine() {
   if (!session) { location.hash = "#/"; return openAuth(); }
-  const { data } = await sb.from("projects").select("*").eq("created_by", session.user.id).order("created_at", { ascending: false });
+  const { data } = await sb.from("va_projects").select("*").eq("created_by", session.user.id).order("created_at", { ascending: false });
   const list = data || [];
   const label = { pending: ["Awaiting approval", "sun"], approved: ["Published", "kelp"], hidden: ["Hidden", "ember"] };
   main.innerHTML = `<section class="section" style="padding-top:40px"><div class="wrap">
@@ -577,7 +577,7 @@ function wireMod(p, after) {
     if (act === "reviewed") patch.reviewed = !p.reviewed;
     if (act === "featured") patch.featured = !p.featured;
     if (act === "note") patch.mod_note = $("#modNote").value.trim();
-    const { error } = await sb.from("projects").update(patch).eq("id", p.id);
+    const { error } = await sb.from("va_projects").update(patch).eq("id", p.id);
     if (error) return setStatus("That didn't save: " + error.message);
     setStatus("Saved."); await loadProjects();
     after ? after() : viewProject(p.slug);
@@ -586,10 +586,10 @@ function wireMod(p, after) {
 
 async function viewModerate() {
   if (!isMod) { location.hash = "#/"; return; }
-  const { data } = await sb.from("projects").select("*").neq("status", "approved").order("created_at", { ascending: true });
+  const { data } = await sb.from("va_projects").select("*").neq("status", "approved").order("created_at", { ascending: true });
   const list = data || [];
   const ids = [...new Set(list.map(p => p.created_by))];
-  if (ids.length) { const { data: ps } = await sb.from("profiles").select("id,display_name").in("id", ids); (ps || []).forEach(x => names[x.id] = x.display_name); }
+  if (ids.length) { const { data: ps } = await sb.from("va_profiles").select("id,display_name").in("id", ids); (ps || []).forEach(x => names[x.id] = x.display_name); }
   main.innerHTML = `<section class="section" style="padding-top:40px"><div class="wrap">
     <div class="section-head"><div><p class="eyebrow">Moderation</p><h1 style="font-size:clamp(40px,6vw,64px);margin-top:8px">Waiting for review</h1></div></div>
     <div class="callout" style="margin-bottom:24px">Before approving: open the live link, check the screenshot and prompt contain no personal data, and that nothing could put someone at risk. Hide with a note if something needs fixing.</div>
@@ -647,7 +647,7 @@ $("#profileForm").addEventListener("submit", async e => {
   const row = { id: session.user.id, display_name: $("#pName").value.trim(), organisation: $("#pOrg").value.trim(), location: $("#pLoc").value.trim(), github: $("#pGh").value.trim(), over_16: $("#pOver16").checked };
   if (!row.display_name) { msg.className = "msg err"; msg.textContent = "Please add a name to show."; return; }
   if (!row.over_16) { msg.className = "msg err"; msg.textContent = "You need to be 16 or over to share projects here."; return; }
-  const { error } = await sb.from("profiles").upsert(row);
+  const { error } = await sb.from("va_profiles").upsert(row);
   if (error) { msg.className = "msg err"; msg.textContent = "That didn't save: " + error.message; return; }
   $("#profileDialog").close(); await loadMe(); setStatus("Saved. Welcome to Vibe Aid.");
   if (location.hash.startsWith("#/submit") || location.hash.startsWith("#/edit")) route();
