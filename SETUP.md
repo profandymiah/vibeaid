@@ -19,6 +19,16 @@ The "real accounts only" block at the end of `schema.sql` is already applied.
 2. Paste the Client ID and a new Client Secret into that Supabase GitHub provider and enable it.
 3. In `config.js` set `GITHUB_SIGNIN: true`.
 
+### Part 1c: "Continue with LinkedIn"
+
+Every project already links to its sharer's LinkedIn profile (they paste it into their profile before submitting). Turning on LinkedIn sign-in also marks them as "signed in with LinkedIn".
+
+1. Go to **linkedin.com/developers/apps → Create app**. LinkedIn asks you to attach the app to a **LinkedIn Page** — use an existing page or create one for Vibe Aid. Upload the Vibe Aid mark as the logo.
+2. In the app, open **Products** and request **Sign In with LinkedIn using OpenID Connect** (usually approved instantly).
+3. Open **Auth**. Under **Authorized redirect URLs** add the callback URL Supabase shows in the next step (it looks like `https://ynqfrqlagcqxoadjvtfy.supabase.co/auth/v1/callback`). Copy the **Client ID** and **Client Secret**.
+4. In Supabase (the vibeaid project): **Authentication → Sign In / Providers → LinkedIn (OIDC)**. Turn it on, paste the Client ID and Secret, save.
+5. In `config.js` set `LINKEDIN_SIGNIN: true` and commit.
+
 ## Part 2: GitHub Pages
 
 1. New **public** repository `vibeaid` under `profandymiah`, then upload everything in this folder (keep the folder structure, including `.github` and `.nojekyll`).

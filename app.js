@@ -35,7 +35,7 @@ const CHECKS = [
 ];
 
 let session = null, profile = null, isMod = false;
-let projects = [], counts = {}, myUseful = new Set(), usingExamples = false, names = {};
+let projects = [], counts = {}, myUseful = new Set(), usingExamples = false, names = {}, people = {};
 let typedTimer = null;
 
 /* ---------- small helpers ---------- */
@@ -53,6 +53,13 @@ function shotUrl(p) {
 function placeholder(p) {
   const c = CAUSES[p.cause] || CAUSES.other;
   return `<div class="ph c-${esc(p.cause || "other")}" role="img" aria-label="${esc(c.label)}">${icon(c.icon)}</div>`;
+}
+const PCOLS = "id,display_name,linkedin_url,linkedin_verified";
+const LI_RE = /^https:\/\/([a-z]{2,3}\.)?linkedin\.com\/in\/[A-Za-z0-9\-_%]+\/?$/i;
+function liLink(person) {
+  const u = person && safeUrl(person.linkedin_url);
+  if (!u) return "";
+  return `<a class="li-badge" href="${esc(u)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>${esc(person.display_name)} on LinkedIn${person.linkedin_verified ? " · signed in with LinkedIn" : ""}</a>`;
 }
 function by(p) { return p.team || names[p.created_by] || ""; }
 
@@ -105,8 +112,8 @@ async function loadProjects() {
     (c || []).forEach(r => counts[r.project_id] = r.n);
     const ids = [...new Set(projects.map(p => p.created_by))].filter(id => !names[id]);
     if (ids.length) {
-      const { data: ps } = await sb.from("va_profiles").select("id,display_name").in("id", ids);
-      (ps || []).forEach(p => names[p.id] = p.display_name);
+      const { data: ps } = await sb.from("va_profiles").select(PCOLS).in("id", ids);
+      (ps || []).forEach(p => { names[p.id] = p.display_name; people[p.id] = p; });
     }
   }
   if (!projects.length && CFG.SHOW_EXAMPLES_WHEN_EMPTY !== false) {
@@ -276,7 +283,7 @@ async function findProject(slug) {
     const { data } = await sb.from("va_projects").select("*").eq("slug", slug).maybeSingle();
     if (data) {
       p = data;
-      if (!names[p.created_by]) { const { data: pr } = await sb.from("va_profiles").select("id,display_name").eq("id", p.created_by).maybeSingle(); if (pr) names[pr.id] = pr.display_name; }
+      if (!names[p.created_by]) { const { data: pr } = await sb.from("va_profiles").select(PCOLS).eq("id", p.created_by).maybeSingle(); if (pr) { names[pr.id] = pr.display_name; people[pr.id] = pr; } }
     }
   }
   return p;
@@ -321,6 +328,7 @@ async function viewProject(slug) {
         <dl style="display:grid;gap:16px;margin:0">
           ${p.helps ? `<div><dt>Who it helps</dt><dd>${esc(p.helps)}</dd></div>` : ""}
           ${by(p) ? `<div><dt>Built by</dt><dd>${esc(by(p))}</dd></div>` : ""}
+          ${!p.example && people[p.created_by] && people[p.created_by].linkedin_url ? `<div><dt>Shared by</dt><dd style="margin-top:6px">${liLink(people[p.created_by])}</dd></div>` : ""}
           ${(p.tools || []).length ? `<div><dt>Built with</dt><dd style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${p.tools.map(t => `<span class="va-tag">${esc(t)}</span>`).join("")}</dd></div>` : ""}
           ${p.build_time ? `<div><dt>Time to first version</dt><dd>${esc(BUILD_TIME[p.build_time] || "")}</dd></div>` : ""}
           ${p.licence ? `<div><dt>Licence</dt><dd>${esc(p.licence)}</dd></div>` : ""}
@@ -367,12 +375,12 @@ async function viewSubmit(editSlug) {
   if (!session) {
     main.innerHTML = `<section class="section"><div class="wrap" style="max-width:760px"><p class="eyebrow">Show your build</p>
       <h1 style="font-size:clamp(40px,6vw,64px);margin:8px 0 16px">Share what you made.</h1>
-      <p class="muted" style="font-size:18px;margin-bottom:24px">Sign in first so you can come back and edit your project. It takes ten seconds${CFG.GITHUB_SIGNIN ? " with GitHub or" : " with"} an email link.</p>
+      <p class="muted" style="font-size:18px;margin-bottom:24px">We ask everyone who shares a build to sign in and link their LinkedIn profile. It means every project has a real person behind it that others can contact and learn from, and you can come back to edit it whenever you like. It takes ten seconds${CFG.LINKEDIN_SIGNIN ? " with LinkedIn or" : " with"} an email link.</p>
       <button class="va-btn va-btn-primary" id="signInToPost" type="button">Sign in to continue</button></div></section>`;
     $("#signInToPost").addEventListener("click", () => openAuth("Sign in to share your build."));
     return;
   }
-  if (!profile) { openProfile(); }
+  if (!profile || !profile.linkedin_url) { openProfile(); }
   let p = null;
   if (editSlug) {
     p = await findProject(editSlug);
@@ -382,7 +390,7 @@ async function viewSubmit(editSlug) {
   main.innerHTML = `<section class="section" style="padding-top:40px"><div class="wrap">
     <p class="eyebrow">${p ? "Edit your build" : "Show your build"}</p>
     <h1 style="font-size:clamp(40px,6vw,64px);margin:8px 0 12px">${p ? esc(p.title) : "Share what you made."}</h1>
-    <p class="muted" style="font-size:18px;max-width:36em;margin-bottom:32px">${p ? "Saving sends your changes back for a quick moderator check." : "A moderator checks every project before it goes public — usually within a few days. Rough is fine. Honest is better."}</p>
+    <p class="muted" style="font-size:18px;max-width:36em;margin-bottom:32px">${p ? "Saving sends your changes back for a quick moderator check." : "A moderator checks every project before it goes public — usually within a few days. Rough is fine. Honest is better. Your project will link to your LinkedIn profile so people can see who made it."}</p>
     <form class="form" id="pform" novalidate>
       ${p ? "" : `<div class="gh-import">
         <p class="eyebrow">Start from GitHub (optional)</p>
@@ -482,6 +490,7 @@ async function importGitHub() {
 async function saveProject(existing) {
   const msg = $("#formMsg"), btn = $("#fSubmit");
   if (!profile) { openProfile(); msg.className = "msg err"; msg.textContent = "Please add your name first."; return; }
+  if (!profile.linkedin_url) { openProfile(); msg.className = "msg err"; msg.textContent = "Please add your LinkedIn profile first — every project links back to the person who shared it."; return; }
   const val = id => $(id).value.trim();
   const row = {
     title: val("#fTitle"), tagline: val("#fTagline"), cause: val("#fCause"), location: val("#fLoc"), team: val("#fTeam"),
@@ -589,14 +598,14 @@ async function viewModerate() {
   const { data } = await sb.from("va_projects").select("*").neq("status", "approved").order("created_at", { ascending: true });
   const list = data || [];
   const ids = [...new Set(list.map(p => p.created_by))];
-  if (ids.length) { const { data: ps } = await sb.from("va_profiles").select("id,display_name").in("id", ids); (ps || []).forEach(x => names[x.id] = x.display_name); }
+  if (ids.length) { const { data: ps } = await sb.from("va_profiles").select(PCOLS).in("id", ids); (ps || []).forEach(x => { names[x.id] = x.display_name; people[x.id] = x; }); }
   main.innerHTML = `<section class="section" style="padding-top:40px"><div class="wrap">
     <div class="section-head"><div><p class="eyebrow">Moderation</p><h1 style="font-size:clamp(40px,6vw,64px);margin-top:8px">Waiting for review</h1></div></div>
     <div class="callout" style="margin-bottom:24px">Before approving: open the live link, check the screenshot and prompt contain no personal data, and that nothing could put someone at risk. Hide with a note if something needs fixing.</div>
     ${list.length ? `<div class="mod-list">${list.map(p => `<div class="mod-row"><div>
       <span class="va-tag ${p.status === "hidden" ? "va-tag-ember" : "va-tag-sun"}">${p.status === "hidden" ? "Hidden" : "Pending"}</span>
       <h3 style="font-size:22px;margin:10px 0 4px"><a href="#/p/${esc(p.slug)}" style="color:var(--ink)">${esc(p.title)}</a></h3>
-      <p class="muted">${esc(p.tagline)}</p><p style="font-size:14px;margin-top:6px">By ${esc(names[p.created_by] || "someone")} · ${new Date(p.created_at).toLocaleDateString("en-GB")}</p></div>
+      <p class="muted">${esc(p.tagline)}</p><p style="font-size:14px;margin-top:6px">By ${esc(names[p.created_by] || "someone")} · ${new Date(p.created_at).toLocaleDateString("en-GB")}</p>${people[p.created_by] ? `<p style="margin-top:6px">${liLink(people[p.created_by])}</p>` : ""}</div>
       <div class="acts"><a class="va-btn va-btn-sm va-btn-primary" href="#/p/${esc(p.slug)}">Review</a></div></div>`).join("")}</div>`
     : `<div class="empty"><h3>All clear</h3><p class="muted">Nothing is waiting for review.</p></div>`}
   </div></section>`;
@@ -606,11 +615,17 @@ async function viewModerate() {
 function openAuth(intro) {
   if (!sb) return setStatus("Sign-in opens once the database is connected.");
   $("#authForm").reset(); $("#authMsg").textContent = "";
-  $("#authIntro").textContent = intro || "We'll email you a sign-in link. No password needed.";
-  $("#ghBtn").hidden = $("#ghOr").hidden = !CFG.GITHUB_SIGNIN;
+  $("#authIntro").textContent = intro || "Browsing is open to everyone. You only need to sign in to share a build or mark one as useful.";
+  $("#ghBtn").hidden = !CFG.GITHUB_SIGNIN;
+  $("#liBtn").hidden = !CFG.LINKEDIN_SIGNIN;
+  $("#ghOr").hidden = !(CFG.GITHUB_SIGNIN || CFG.LINKEDIN_SIGNIN);
   $("#authDialog").showModal();
 }
 $("#authCancel").addEventListener("click", () => $("#authDialog").close());
+$("#liBtn").addEventListener("click", () => {
+  store("va-return", location.hash);
+  sb.auth.signInWithOAuth({ provider: "linkedin_oidc", options: { redirectTo: redirectTo() } });
+});
 $("#ghBtn").addEventListener("click", () => {
   store("va-return", location.hash);
   sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: redirectTo() } });
@@ -637,6 +652,7 @@ function openProfile() {
   $("#pOrg").value = profile?.organisation || "";
   $("#pLoc").value = profile?.location || "";
   $("#pGh").value = profile?.github || meta.user_name || "";
+  $("#pLi").value = profile?.linkedin_url || "";
   $("#pOver16").checked = !!profile?.over_16;
   $("#profMsg").textContent = "";
   if (!$("#profileDialog").open) $("#profileDialog").showModal();
@@ -644,7 +660,8 @@ function openProfile() {
 $("#profileForm").addEventListener("submit", async e => {
   e.preventDefault();
   const msg = $("#profMsg");
-  const row = { id: session.user.id, display_name: $("#pName").value.trim(), organisation: $("#pOrg").value.trim(), location: $("#pLoc").value.trim(), github: $("#pGh").value.trim(), over_16: $("#pOver16").checked };
+  const row = { id: session.user.id, display_name: $("#pName").value.trim(), organisation: $("#pOrg").value.trim(), location: $("#pLoc").value.trim(), github: $("#pGh").value.trim(), linkedin_url: $("#pLi").value.trim().replace(/^http:/i, "https:").replace(/^https:\/\/linkedin\.com/i, "https://www.linkedin.com"), over_16: $("#pOver16").checked };
+  if (row.linkedin_url && !LI_RE.test(row.linkedin_url)) { msg.className = "msg err"; msg.textContent = "Please use your LinkedIn profile address, like https://www.linkedin.com/in/your-name"; return; }
   if (!row.display_name) { msg.className = "msg err"; msg.textContent = "Please add a name to show."; return; }
   if (!row.over_16) { msg.className = "msg err"; msg.textContent = "You need to be 16 or over to share projects here."; return; }
   const { error } = await sb.from("va_profiles").upsert(row);

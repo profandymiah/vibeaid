@@ -79,11 +79,23 @@
 <dialog id="authDialog" aria-labelledby="authTitle">
   <form method="dialog" class="dlg" id="authForm">
     <h2 id="authTitle">Sign in</h2>
-    <p class="muted" id="authIntro">We'll email you a sign-in link. No password needed.</p>
+    <p class="muted" id="authIntro">Browsing is open to everyone. You only need to sign in to share a build or mark one as useful.</p>
+    <details class="why" open>
+      <summary>Why we ask you to sign in</summary>
+      <ul>
+        <li><strong>Every project has a real person behind it.</strong> Each build links to its maker's LinkedIn, so people can see who made it, get in touch and build on it.</li>
+        <li><strong>You stay in control.</strong> You can come back to edit or delete your project at any time.</li>
+        <li><strong>It keeps the showcase safe.</strong> We can follow up if a project needs fixing, and stop spam.</li>
+      </ul>
+      <p class="muted" style="font-size:13px">We never post anything to LinkedIn for you. Your email is never shown. <a href="privacy.html" target="_blank">Privacy</a></p>
+    </details>
+    <button class="va-btn li-btn" type="button" id="liBtn" hidden>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.03-3.04-1.85-3.04-1.86 0-2.14 1.45-2.14 2.95v5.66H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>
+      Continue with LinkedIn</button>
     <button class="va-btn gh-btn" type="button" id="ghBtn" hidden>
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.56-.29-5.25-1.28-5.25-5.7 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.43-2.7 5.4-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
       Continue with GitHub</button>
-    <p class="or" id="ghOr" hidden>or use your email</p>
+    <p class="or" id="ghOr" hidden>or get an email link</p>
     <div class="field">
       <label for="aEmail">Email address</label>
       <input type="email" id="aEmail" autocomplete="email" required>
@@ -99,10 +111,11 @@
 <dialog id="profileDialog" aria-labelledby="profTitle">
   <form method="dialog" class="dlg" id="profileForm">
     <h2 id="profTitle">About you</h2>
-    <p class="muted">Your name appears on the projects you share. Everything else is optional.</p>
+    <p class="muted">Your name and LinkedIn appear on the projects you share, so people know who made them. Everything else is optional.</p>
     <div class="field"><label for="pName">Name to show</label><input type="text" id="pName" maxlength="60" required></div>
     <div class="field"><label for="pOrg">Organisation or group <span class="muted">(optional)</span></label><input type="text" id="pOrg" maxlength="100"></div>
     <div class="field"><label for="pLoc">Town or region <span class="muted">(optional)</span></label><input type="text" id="pLoc" maxlength="80"></div>
+    <div class="field"><label for="pLi">Your LinkedIn profile</label><span class="hint">Needed to share a project. e.g. https://www.linkedin.com/in/your-name</span><input type="url" id="pLi" maxlength="200" placeholder="https://www.linkedin.com/in/…" inputmode="url"></div>
     <div class="field"><label for="pGh">GitHub username <span class="muted">(optional)</span></label><input type="text" id="pGh" maxlength="39" pattern="[A-Za-z0-9-]{1,39}"></div>
     <label class="check"><input type="checkbox" id="pOver16" required> <span>I'm 16 or over.</span></label>
     <p class="msg" id="profMsg" role="alert"></p>

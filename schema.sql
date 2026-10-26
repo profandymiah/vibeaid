@@ -184,3 +184,31 @@ create policy "va useful own add" on public.va_useful for insert to authenticate
 drop policy "va shots upload own folder" on storage.objects;
 create policy "va shots upload own folder" on storage.objects for insert to authenticated
   with check (bucket_id = 'va-shots' and public.va_is_real_user() and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ---------------------------------------------------------------
+-- LinkedIn: every project links back to the person who shared it.
+-- ---------------------------------------------------------------
+alter table public.va_profiles
+  add column if not exists linkedin_url text not null default ''
+    check (linkedin_url = '' or linkedin_url ~* '^https://([a-z]{2,3}\.)?linkedin\.com/in/[A-Za-z0-9_%-]+/?$'),
+  add column if not exists linkedin_verified boolean not null default false;
+
+-- Set by the database, never by the browser: true when the person
+-- signed in with (or has linked) a LinkedIn account.
+create or replace function public.va_set_linkedin_verified()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  new.linkedin_verified := coalesce((auth.jwt()->'app_metadata'->'providers') ? 'linkedin_oidc', false)
+                        or coalesce(auth.jwt()->'app_metadata'->>'provider' = 'linkedin_oidc', false);
+  return new;
+end $$;
+revoke execute on function public.va_set_linkedin_verified() from public, anon, authenticated;
+drop trigger if exists va_profiles_linkedin on public.va_profiles;
+create trigger va_profiles_linkedin before insert or update on public.va_profiles
+  for each row execute function public.va_set_linkedin_verified();
+
+drop policy if exists "va projects insert" on public.va_projects;
+create policy "va projects insert" on public.va_projects for insert to authenticated
+  with check (public.va_is_real_user() and exists (
+    select 1 from public.va_profiles p where p.id = auth.uid() and p.over_16 and p.linkedin_url <> ''));
