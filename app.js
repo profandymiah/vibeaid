@@ -151,7 +151,8 @@ function viewHome() {
   main.innerHTML = `
   <section class="hero"><div class="wrap hero-grid">
     <div>
-      <p class="eyebrow">Vibe coding for humanitarian &amp; social good</p>
+      <a class="powered" href="https://andymiah.net" target="_blank" rel="noopener">Powered by <strong>Professor Andy Miah</strong> <span aria-hidden="true">↗</span></a>
+      <p class="eyebrow" style="margin-top:20px">Vibe coding for humanitarian &amp; social good</p>
       <h1 style="margin-top:16px">Build what your community <span class="hl">needs.</span> In your own words.</h1>
       <p class="lead">You don't need to be a programmer to make the tool your food bank, clinic or tenants' group keeps wishing it had. Describe it to an AI, build it, then share it here — with the prompt — so the next group can start from yours.</p>
       <div class="ctas">

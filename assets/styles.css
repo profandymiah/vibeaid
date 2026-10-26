@@ -265,3 +265,7 @@ main:focus { outline: none; }
 .li-badge svg { width: 16px; height: 16px; color: #0A66C2; }
 :root[data-theme="dark"] .li-badge svg { color: #70B5F9; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .li-badge svg { color: #70B5F9; } }
+
+.powered { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink); text-decoration: none; border: 2px solid var(--ink); border-radius: var(--radius-pill); padding: 6px 14px; background: var(--paper-raised); }
+.powered strong { font-weight: 600; }
+.powered:hover { background: var(--sun); color: var(--on-sun); border-color: var(--ink); }
