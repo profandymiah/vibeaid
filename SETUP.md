@@ -4,14 +4,14 @@ Same set-up as SignStories: **Supabase** (database, sign-in, screenshots) → **
 
 ## Part 1: Supabase (already done)
 
-Vibe Aid shares the **signstories** Supabase project (the free plan allows two active projects). Every Vibe Aid table, function and storage bucket starts with `va_` / `va-`, so nothing touches SignStories. The tables are installed and `config.js` is filled in.
+Vibe Aid lives in the shared **vibeaid** Supabase project (also home to SignStories; the free plan allows two active projects). Every Vibe Aid table, function and storage bucket starts with `va_` / `va-`, so nothing touches SignStories. The tables are installed and `config.js` is filled in.
 
-Two dashboard settings left, in the signstories project:
+Two dashboard settings left, in the vibeaid project:
 
 1. **Authentication → URL Configuration → Redirect URLs**: add `https://vibeaid.andymiah.net/**` (keep the SignStories ones).
 2. **Authentication → Emails → Templates → Magic Link**: if it mentions BSL Sign Stories, reword it to something neutral like "Your sign-in link", since both sites now send it.
 
-If the "real accounts only" block at the end of `schema.sql` hasn't been applied, paste that block into **SQL Editor** and run it.
+The "real accounts only" block at the end of `schema.sql` is already applied.
 
 ### Part 1b (optional): "Continue with GitHub"
 

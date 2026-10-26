@@ -1,4 +1,4 @@
-// Vibe Aid settings. Shares the SignStories Supabase project (all tables start with va_).
+// Vibe Aid settings. Uses the shared "vibeaid" Supabase project (all tables start with va_).
 // Fill these in from Supabase > Project Settings > API (see SETUP.md).
 window.VIBE_AID_CONFIG = {
   // Project URL, e.g. "https://abcdefghijkl.supabase.co"
