@@ -595,7 +595,22 @@ function wireMod(p, after) {
 }
 
 async function viewModerate() {
-  if (!isMod) { location.hash = "#/"; return; }
+  if (!configured) { main.innerHTML = `<section class="section"><div class="wrap"><div class="empty"><h3>Moderation opens once the database is connected</h3></div></div></section>`; return; }
+  if (!session) {
+    main.innerHTML = `<section class="section"><div class="wrap" style="max-width:640px"><p class="eyebrow">Moderation</p>
+      <h1 style="font-size:clamp(36px,6vw,56px);margin:8px 0 16px">Sign in to moderate</h1>
+      <p class="muted" style="font-size:18px;margin-bottom:24px">Use the email address that has moderator access.</p>
+      <button class="va-btn va-btn-primary" id="modSignIn" type="button">Sign in</button></div></section>`;
+    store("va-return", "#/moderate");
+    $("#modSignIn").addEventListener("click", () => openAuth("Sign in with your moderator email address."));
+    return;
+  }
+  if (!isMod) {
+    main.innerHTML = `<section class="section"><div class="wrap" style="max-width:640px"><p class="eyebrow">Moderation</p>
+      <h1 style="font-size:clamp(36px,6vw,56px);margin:8px 0 16px">This account isn't a moderator</h1>
+      <p class="muted" style="font-size:18px">You're signed in as <strong>${esc(session.user.email || "an account without an email")}</strong>. If that's the wrong address, sign out and sign in with your moderator email.</p></div></section>`;
+    return;
+  }
   const { data } = await sb.from("va_projects").select("*").neq("status", "approved").order("created_at", { ascending: true });
   const list = data || [];
   const ids = [...new Set(list.map(p => p.created_by))];
@@ -699,13 +714,19 @@ window.addEventListener("hashchange", route);
 (async function start() {
   if (sb) {
     const { data } = await sb.auth.getSession(); session = data.session;
-    sb.auth.onAuthStateChange(async (event, s) => {
+    // Supabase holds a lock while this callback runs, so database calls are
+    // deferred with setTimeout; awaiting them here can freeze the page.
+    sb.auth.onAuthStateChange((event, s) => {
       const was = !!session; session = s;
       if (event === "SIGNED_IN" && !was) {
-        await loadMe();
-        if (!profile) openProfile();
-        const back = store("va-return"); if (back) { store("va-return", ""); if (back !== location.hash) { location.hash = back; return; } }
-        route();
+        setTimeout(async () => {
+          await loadMe();
+          if (!profile || !profile.linkedin_url) openProfile();
+          const back = store("va-return"); if (back) { store("va-return", ""); if (back !== location.hash) { location.hash = back; return; } }
+          route();
+        }, 0);
+      } else if (event === "SIGNED_OUT") {
+        setTimeout(async () => { await loadMe(); route(); }, 0);
       }
     });
   }
