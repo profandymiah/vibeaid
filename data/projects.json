@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "slug": "sign-stories-lmsn",
+    "title": "Sign Stories",
+    "tagline": "A place for people to share the stories behind British Sign Language signs",
+    "cause": "health",
+    "helps": "People learning to use British Sign Language",
+    "problem": "Tell the origin stories of signs from a diverse range of people and help people discover the rich history of British Sign Language",
+    "what_it_does": "A learner-led archive of the stories behind British Sign Language signs. Live at https://signstories.andymiah.net",
+    "prompt": "",
+    "tools": [
+      "Claude"
+    ],
+    "build_time": "hours",
+    "lessons": "",
+    "live_url": "https://signstories.andymiah.net/",
+    "repo_url": "https://github.com/profandymiah/signstories",
+    "licence": "",
+    "location": "Greater Manchester",
+    "team": "",
+    "reviewed": false,
+    "created_at": "2026-10-26T15:41:28.157431+00:00",
+    "updated_at": "2026-10-26T16:36:23.332711+00:00",
+    "url": "https://vibeaid.andymiah.net/#/p/sign-stories-lmsn"
+  }
+]
